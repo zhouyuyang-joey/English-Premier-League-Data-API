@@ -9,7 +9,7 @@
 
 > Created by Zhou Yuyang
 
-> Inspired by Erick Ghuron's [premier-league-data](https://github.com/ghurone/premier-league-data)
+> Based on Erick Ghuron's [premier-league-data](https://github.com/ghurone/premier-league-data)
 
 
 ## Features
