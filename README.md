@@ -27,7 +27,7 @@ Alternatively, you can run ``pip install -r requirements.txt`` in the terminal. 
 ## Installation
 
 ```
-pip install epl-data
+pip install eplda
 ```
 
 ## Brief Guide

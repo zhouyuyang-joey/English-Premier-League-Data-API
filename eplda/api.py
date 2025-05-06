@@ -2,8 +2,6 @@
     Created by Zhou Yuyang
     Based on Erick Ghuron's premier-league-data API client("https://github.com/ghurone/premier-league-data").
 '''
-
-
 import json
 import pandas as pd
 import requests
@@ -15,21 +13,22 @@ def req_to_json(req: requests.Response) -> dict:
         return json.loads(req.text)
     else:
         raise ValueError(f'Error! status code:<{req.status_code}>')
-
-
-class EPLAPI:
-    def __init__(self) -> None:
-        self.header = {
+HEADER = {
             'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
             'origin': 'https://www.premierleague.com',
             'referer': 'https://www.premierleague.com',
         }
-        self.root_url = 'https://footballapi.pulselive.com/football/'
+ROOT_URL = 'https://footballapi.pulselive.com/football/'
+
+
+class EPLAPI:
+    def __init__(self) -> None:
+        pass
 
 
     def __api_call(self, path:str, qparams:dict = {}):
-        url = self.root_url + path
-        res = requests.get(url, headers=self.header, params= qparams)
+        url = ROOT_URL + path
+        res = requests.get(url, headers=HEADER, params= qparams)
 
         return req_to_json(res)
 
@@ -183,7 +182,6 @@ class EPLAPI:
         """
         Returns a list of stat_type that can be used in club_stats(club_id, season_id, stat_type=...).
         """
-
         return [
             "gameweek", "wins", "losses", "draws", "goals", "goals_conceded", "clean_sheet",
             "total_pass", "accurate_pass", "poss_won_att_3rd", "poss_won_mid_3rd", "poss_won_def_3rd",
@@ -208,7 +206,6 @@ class EPLAPI:
         Get the statistics for a given club for a given season. 
         If stat_type is not specified, all available data is returned.
         """
-
         endpoint = f"stats/team/{club_id}"
         params = {
             "comps": 1,
@@ -275,7 +272,6 @@ class EPLAPI:
         """
         Returns a ranking of players based on the given stat_type (e.g., "goals", "clean_sheet").
         """
-        
         try:
             # Parameters
             params = {
@@ -363,7 +359,6 @@ class EPLAPI:
         """
         Search for players by name. All matching results will be returned.
         """
-        
         all_players = self.player_list(compseason)
         filtered = [p for p in all_players if name.lower() in p["Name"].lower()]
 
