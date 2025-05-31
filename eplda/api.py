@@ -7,7 +7,7 @@ import json
 import pandas as pd
 import requests
 from typing import Union
-from .config import config, update_config
+from .config import get_config
 
 
 def req_to_json(req: requests.Response) -> dict:
@@ -24,10 +24,15 @@ ROOT_URL = 'https://footballapi.pulselive.com/football/'
 
 
 class EPLAPI:
-    def __init__(self, custom_config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config_file: Optional[str] = None):
         # Update config if provided
-        if custom_config:
-            update_config(custom_config)
+        self.config = get_config()
+        if config_file:
+            from .config import set_config_file
+            set_config_file(config_file)
+            self.config = get_config()
+
+        self._custom_params = {}
 
 
     def __api_call(self, path:str, qparams:dict = {}):
@@ -395,35 +400,3 @@ class EPLAPI:
 
         res = self.__api_call(url, qparams=params)
         return res
-    
-
-if __name__ == "__main__":
-    epl = EPLAPI()
-    season_id = epl.get_season_id("2024/25")
-    
-    print("\n List top goal scorers:")
-    print(epl.player_rankings("goals", season_id, output='df').head(10))
-
-    print("\n Search player by name:")
-    print(epl.player_search_by_name("Mohamed Salah", season_id, output='df'))
-
-    player_id = epl.player_id("Mohamed Salah", season_id)
-    print(f"\n Quickly retrieve the player id by full name: {player_id}")
-
-    print("\n player's detailed stats:")
-
-    stats_df = epl.player_stats(player_id, season_id)
-    entity = stats_df['entity']
-    stats_list = stats_df['stats']
-    stats_dict = {stat['name']: stat['value'] for stat in stats_list}
-    player_summary = {
-        "name": entity['name']['display'],
-        "position": entity['info']['position'],
-        "shirt number": entity['info'].get('shirtNum'),
-        "age": entity.get('age'),
-        "appearances": stats_dict.get('appearances'),
-        "goals": stats_dict.get('goals'),
-        "goal_assist": stats_dict.get('goal_assist')
-    }
-    df_player = pd.DataFrame([player_summary])
-    print(df_player)
