@@ -1,0 +1,42 @@
+# eplda Configuration File
+# This file allows you to customize API configuration without modifying the code.
+
+# API Configuration
+api:
+  # Base URL for the Premier League API
+  root_url: "https://footballapi.pulselive.com/football/"
+  
+  # Request timeout in seconds
+  timeout: 30
+  
+  # Maximum number of retries for failed requests
+  max_retries: 3
+  
+  # Delay between retries in seconds
+  retry_delay: 1
+
+# HTTP Headers for API requests
+headers:
+  content-type: "application/x-www-form-urlencoded; charset=UTF-8"
+  origin: "https://www.premierleague.com"
+  referer: "https://www.premierleague.com"
+  User-Agent: "EPLAPI-Client/1.0"
+
+# Pagination settings
+pagination:
+  # Default number of items per page
+  default_page_size: 20
+  
+  # Maximum allowed page size
+  max_page_size: 100
+  
+  # Maximum page size for player queries
+  max_players_page_size: 100
+
+# Competition-specific settings
+competition:
+  # Premier League competition ID
+  premier_league_id: 1
+  
+  # Competition code for active players
+  comp_code: "EN_PR"

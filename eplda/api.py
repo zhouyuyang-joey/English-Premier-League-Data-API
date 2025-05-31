@@ -2,10 +2,12 @@
     Created by Zhou Yuyang
     Based on Erick Ghuron's premier-league-data API client("https://github.com/ghurone/premier-league-data").
 '''
+from typing import Any, Optional, Dict
 import json
 import pandas as pd
 import requests
 from typing import Union
+from .config import config, update_config
 
 
 def req_to_json(req: requests.Response) -> dict:
@@ -22,8 +24,10 @@ ROOT_URL = 'https://footballapi.pulselive.com/football/'
 
 
 class EPLAPI:
-    def __init__(self) -> None:
-        pass
+    def __init__(self, custom_config: Optional[Dict[str, Any]] = None):
+        # Update config if provided
+        if custom_config:
+            update_config(custom_config)
 
 
     def __api_call(self, path:str, qparams:dict = {}):
