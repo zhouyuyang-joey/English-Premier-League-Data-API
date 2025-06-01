@@ -2,6 +2,7 @@
     Created by Zhou Yuyang
     Based on Erick Ghuron's premier-league-data API client("https://github.com/ghurone/premier-league-data").
 '''
+
 from typing import Any, Optional, Dict
 import json
 import pandas as pd
@@ -15,6 +16,7 @@ def req_to_json(req: requests.Response) -> dict:
         return json.loads(req.text)
     else:
         raise ValueError(f'Error! status code:<{req.status_code}>')
+    
 HEADER = {
             'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
             'origin': 'https://www.premierleague.com',
