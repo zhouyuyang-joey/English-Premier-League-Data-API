@@ -17,7 +17,6 @@ class Config:
         'origin': 'https://www.premierleague.com',
         'referer': 'https://www.premierleague.com',
     }
-    COMPETITION_ID = 1  # Premier League competition ID
     
     def __init__(self, config_path: Optional[str] = None):
         """
