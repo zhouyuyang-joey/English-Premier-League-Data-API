@@ -84,7 +84,7 @@ class APIEndpoints:
     """API endpoint paths"""
     
     # Season endpoints
-    SEASONS = "competitions/1/compseasons"
+    SEASONS = "competitions/{}/compseasons"
     
     # Club endpoints
     CLUBS_IN_SEASON = "compseasons/{}/teams"
