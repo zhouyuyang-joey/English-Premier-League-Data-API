@@ -1,174 +1,184 @@
 """
-Configuration module for eplda library.
-
-This module contains all configuration settings for the API client.
-Settings can be overridden through environment variables or external config files.
+Configuration management for EPLDA (English Premier League Data API)
 """
-
 import os
 import yaml
 from typing import Dict, Any, Optional
+from pathlib import Path
 
 
-class APIConfig:
-    """
-    Central configuration class for EPLAPI.
+class Config:
+    """Configuration manager for EPLDA library"""
     
-    Manages API endpoints, headers, timeouts, and other configurable parameters.
-    Can be customized through environment variables or external YAML files.
-    """
-    
-    # Default API configuration
-    DEFAULT_CONFIG = {
-        'api': {
-            'root_url': 'https://footballapi.pulselive.com/football/',
-            'timeout': 30,
-            'max_retries': 3,
-            'retry_delay': 1,
-        },
-        'headers': {
-            'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
-            'origin': 'https://www.premierleague.com',
-            'referer': 'https://www.premierleague.com',
-            'User-Agent': 'EPLAPI-Client/1.0'
-        },
-        'pagination': {
-            'default_page_size': 20,
-            'max_page_size': 100,
-            'max_players_page_size': 100
-        },
-        'competition': {
-            'premier_league_id': 1,
-            'comp_code': 'EN_PR'
-        }
+    # Core API settings (not user-configurable)
+    ROOT_URL = 'https://footballapi.pulselive.com/football/'
+    HEADERS = {
+        'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'origin': 'https://www.premierleague.com',
+        'referer': 'https://www.premierleague.com',
     }
+    COMPETITION_ID = 1  # Premier League competition ID
     
-    def __init__(self, config_file: Optional[str] = None):
+    def __init__(self, config_path: Optional[str] = None):
         """
-        Initialize configuration.
+        Initialize configuration manager
         
         Args:
-            config_file: Path to external YAML configuration file
+            config_path: Path to custom configuration file
         """
-        self.config = self.DEFAULT_CONFIG.copy()
-        
-        # Load external config file if provided
-        if config_file and os.path.exists(config_file):
-            self._load_config_file(config_file)
-        
-        # Override with environment variables
-        self._load_environment_variables()
+        self._config = self._load_config(config_path)
     
-    def _load_config_file(self, config_file: str) -> None:
-        """Load configuration from YAML file."""
-        try:
-            with open(config_file, 'r') as file:
-                external_config = yaml.safe_load(file)
-                if external_config:
-                    self._merge_config(self.config, external_config)
-        except (yaml.YAMLError, IOError) as e:
-            # Log warning but continue with default config
-            print(f"Warning: Could not load config file {config_file}: {e}")
-    
-    def _load_environment_variables(self) -> None:
-        """Load configuration from environment variables."""
-        env_mappings = {
-            'EPLAPI_ROOT_URL': ('api', 'root_url'),
-            'EPLAPI_TIMEOUT': ('api', 'timeout'),
-            'EPLAPI_MAX_RETRIES': ('api', 'max_retries'),
-            'EPLAPI_RETRY_DELAY': ('api', 'retry_delay'),
-            'EPLAPI_DEFAULT_PAGE_SIZE': ('pagination', 'default_page_size'),
-            'EPLAPI_MAX_PAGE_SIZE': ('pagination', 'max_page_size'),
-        }
-        
-        for env_var, (section, key) in env_mappings.items():
-            value = os.getenv(env_var)
-            if value is not None:
-                # Convert string values to appropriate types
-                if key in ['timeout', 'max_retries', 'retry_delay', 'default_page_size', 'max_page_size']:
-                    try:
-                        value = int(value)
-                    except ValueError:
-                        continue
-                
-                if section not in self.config:
-                    self.config[section] = {}
-                self.config[section][key] = value
-    
-    def _merge_config(self, base: Dict[str, Any], override: Dict[str, Any]) -> None:
-        """Merge configuration dictionaries."""
-        for key, value in override.items():
-            if key in base and isinstance(base[key], dict) and isinstance(value, dict):
-                self._merge_config(base[key], value)
-            else:
-                base[key] = value
-    
-    def get(self, section: str, key: str, default: Any = None) -> Any:
+    def _load_config(self, config_path: Optional[str] = None) -> Dict[str, Any]:
         """
-        Get configuration value.
+        Load configuration from YAML file
         
         Args:
-            section: Configuration section name
-            key: Configuration key name
-            default: Default value if not found
+            config_path: Path to configuration file
             
         Returns:
-            Configuration value or default
+            Configuration dictionary
         """
-        return self.config.get(section, {}).get(key, default)
+        if config_path is None:
+            # Use default config file in the same directory
+            current_dir = Path(__file__).parent
+            config_path = current_dir / 'config.yaml'
+        
+        try:
+            with open(config_path, 'r', encoding='utf-8') as file:
+                return yaml.safe_load(file) or {}
+        except FileNotFoundError:
+            # Return default configuration if file not found
+            return self._get_default_config()
+        except yaml.YAMLError as e:
+            raise ValueError(f"Invalid YAML configuration file: {e}")
     
-    def get_headers(self) -> Dict[str, str]:
-        """Get HTTP headers for API requests."""
-        return self.config.get('headers', {}).copy()
+    def _get_default_config(self) -> Dict[str, Any]:
+        """Get default configuration when config file is not available"""
+        return {
+            'request': {
+                'timeout': 30,
+                'max_retries': 3,
+                'retry_delay': 1,
+                'page_size': 100
+            },
+            'competition': {
+                'premier_league_id': 1,
+                'comp_code': 'EN_PR',
+                'club_page_size': 20,
+                'player_page_size': 50
+            },
+            'data': {
+                'default_output_format': 'json',
+                'include_nationality': True,
+                'filter_first_team_only': True
+            },
+            'cache': {
+                'enabled': False,
+                'ttl': 3600
+            },
+            'logging': {
+                'level': 'INFO',
+                'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            }
+        }
     
-    def get_root_url(self) -> str:
-        """Get API root URL."""
-        return self.get('api', 'root_url')
+    def get(self, key: str, default: Any = None) -> Any:
+        """
+        Get configuration value using dot notation
+        
+        Args:
+            key: Configuration key (e.g., 'request.timeout')
+            default: Default value if key not found
+            
+        Returns:
+            Configuration value
+        """
+        keys = key.split('.')
+        value = self._config
+        
+        try:
+            for k in keys:
+                value = value[k]
+            return value
+        except (KeyError, TypeError):
+            return default
     
-    def get_timeout(self) -> int:
-        """Get request timeout in seconds."""
-        return self.get('api', 'timeout')
+    def set(self, key: str, value: Any) -> None:
+        """
+        Set configuration value using dot notation
+        
+        Args:
+            key: Configuration key (e.g., 'request.timeout')
+            value: Value to set
+        """
+        keys = key.split('.')
+        config = self._config
+        
+        # Navigate to the parent dictionary
+        for k in keys[:-1]:
+            if k not in config:
+                config[k] = {}
+            config = config[k]
+        
+        # Set the final value
+        config[keys[-1]] = value
     
-    def get_max_retries(self) -> int:
-        """Get maximum number of retries for failed requests."""
-        return self.get('api', 'max_retries')
+    @property
+    def request_timeout(self) -> int:
+        """Request timeout in seconds"""
+        return self.get('request.timeout', 30)
     
-    def get_retry_delay(self) -> int:
-        """Get delay between retries in seconds."""
-        return self.get('api', 'retry_delay')
+    @property
+    def max_retries(self) -> int:
+        """Maximum number of retry attempts"""
+        return self.get('request.max_retries', 3)
     
-    def get_default_page_size(self) -> int:
-        """Get default pagination page size."""
-        return self.get('pagination', 'default_page_size')
+    @property
+    def retry_delay(self) -> int:
+        """Delay between retries in seconds"""
+        return self.get('request.retry_delay', 1)
     
-    def get_max_page_size(self) -> int:
-        """Get maximum allowed page size."""
-        return self.get('pagination', 'max_page_size')
+    @property
+    def default_page_size(self) -> int:
+        """Default page size for paginated requests"""
+        return self.get('request.page_size', 100)
     
-    def get_premier_league_id(self) -> int:
-        """Get Premier League competition ID."""
-        return self.get('competition', 'premier_league_id')
+    @property
+    def default_output_format(self) -> str:
+        """Default output format"""
+        return self.get('data.default_output_format', 'json')
     
-    def get_comp_code(self) -> str:
-        """Get competition code for active players."""
-        return self.get('competition', 'comp_code')
+    @property
+    def include_nationality(self) -> bool:
+        """Whether to include nationality in player data"""
+        return self.get('data.include_nationality', True)
+    
+    @property
+    def filter_first_team_only(self) -> bool:
+        """Whether to filter only first team players"""
+        return self.get('data.filter_first_team_only', True)
+    
+    # Competition-specific properties
+    @property
+    def premier_league_id(self) -> int:
+        """Premier League competition ID"""
+        return self.get('competition.premier_league_id', 1)
+    
+    @property
+    def comp_code(self) -> str:
+        """Competition code for active players"""
+        return self.get('competition.comp_code', 'EN_PR')
+    
+    @property
+    def club_page_size(self) -> int:
+        """Page size for club data (20 teams in EPL)"""
+        return self.get('competition.club_page_size', 20)
+    
+    @property
+    def player_page_size(self) -> int:
+        """Page size for player rankings"""
+        return self.get('competition.player_page_size', 50)
 
 
 # Global configuration instance
-config = APIConfig()
-
-
-def set_config_file(config_file: str) -> None:
-    """
-    Set external configuration file.
-    
-    Args:
-        config_file: Path to YAML configuration file
-    """
-    global config
-    config = APIConfig(config_file)
-
-
-def get_config() -> APIConfig:
-    """Get the global configuration instance."""
-    return config
+config = Config()
