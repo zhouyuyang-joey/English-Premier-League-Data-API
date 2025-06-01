@@ -8,33 +8,16 @@ import json
 import pandas as pd
 import requests
 from typing import Union
-from .config import get_config
-
-
-def req_to_json(req: requests.Response) -> dict:
-    if req.status_code == 200:
-        return json.loads(req.text)
-    else:
-        raise ValueError(f'Error! status code:<{req.status_code}>')
-    
-HEADER = {
-            'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
-            'origin': 'https://www.premierleague.com',
-            'referer': 'https://www.premierleague.com',
-        }
-ROOT_URL = 'https://footballapi.pulselive.com/football/'
+from .config import config
+from .constants import StatTypes, APIEndpoints, DataKeys, OutputFormats, get_all_club_stat_types, validate_stat_type
 
 
 class EPLAPI:
     def __init__(self, config_file: Optional[str] = None):
         # Update config if provided
-        self.config = get_config()
-        if config_file:
-            from .config import set_config_file
-            set_config_file(config_file)
-            self.config = get_config()
-
-        self._custom_params = {}
+        if custom_config:
+            for key, value in custom_config.items():
+                config.set(key, value)
 
 
     def __api_call(self, path:str, qparams:dict = {}):
