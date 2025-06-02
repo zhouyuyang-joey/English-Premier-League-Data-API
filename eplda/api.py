@@ -3,8 +3,9 @@
     Based on Erick Ghuron's premier-league-data API client("https://github.com/ghurone/premier-league-data").
 '''
 
-from typing import Any, Optional, Dict
+from typing import Any, Optional, Dict, List
 import json
+import time
 import pandas as pd
 import requests
 from typing import Union
@@ -13,78 +14,164 @@ from .constants import StatTypes, APIEndpoints, DataKeys, OutputFormats, get_all
 
 
 class EPLAPI:
-    def __init__(self, config_file: Optional[str] = None):
+    def __init__(self, custom_config: Optional[str] = None):
         # Update config if provided
         if custom_config:
             for key, value in custom_config.items():
                 config.set(key, value)
 
+    
+    def _make_request(self, endpoint, params: Dict[str, Any] = None) -> Dict[str, Any]:
+        url = config.ROOT_URL + endpoint
+        params = params or {}
 
-    def __api_call(self, path:str, qparams:dict = {}):
-        url = ROOT_URL + path
-        res = requests.get(url, headers=HEADER, params= qparams)
+        for attempt in range(config.max_retries + 1):
+            try:
+                response = requests.get(
+                    url, 
+                    headers=config.HEADERS, 
+                    params=params,
+                    timeout=config.request_timeout
+                )
+                
+                if response.status_code == 429:
+                    retry_after = int(response.headers.get('Retry-After', 60))
+                    if attempt < config.max_retries:
+                        print(f"Rate limit exceeded. Waiting {retry_after} seconds...")
+                        time.sleep(retry_after)
+                        continue
+                    raise ValueError(f"Rate limit exceeded. Please wait {retry_after} seconds before retrying.")
+                
+                if response.status_code == 200:
+                    try:
+                        return json.loads(response.text)
+                    except json.JSONDecodeError:
+                        raise ValueError("Invalid JSON response from API")
+                else:
+                    raise ValueError(f"API request failed with status code {response.status_code}")
+                    
+            except requests.exceptions.Timeout:
+                if attempt < config.max_retries:
+                    print(f"Request timeout. Retrying in {config.retry_delay} seconds... (Attempt {attempt + 1}/{config.max_retries + 1})")
+                    time.sleep(config.retry_delay)
+                    continue
+                raise ValueError("Request timeout. Please check your internet connection.")
+            
+            except requests.exceptions.ConnectionError:
+                if attempt < config.max_retries:
+                    print(f"Connection error. Retrying in {config.retry_delay} seconds... (Attempt {attempt + 1}/{config.max_retries + 1})")
+                    time.sleep(config.retry_delay)
+                    continue
+                raise ValueError("Connection error. Please check your internet connection.")
+            
+            except requests.exceptions.RequestException as e:
+                raise ValueError(f"Network error: {str(e)}")
+            
+    def _validate_output_format(self, output_format: str) -> None:
+        """Validate output format parameter"""
+        if not OutputFormats.is_valid(output_format):
+            raise ValueError(f"Invalid output format '{output_format}'. Valid options are: 'json', 'df'")
+        
 
-        return req_to_json(res)
+    def _format_output(self, data: List[Dict], output_format: str) -> Union[List[Dict], pd.DataFrame]:
+        """
+        Format output data according to specified format
+        
+        Args:
+            data: Data to format
+            output_format: Output format ('json' or 'df')
+            
+        Returns:
+            Formatted data
+        """
+        self._validate_output_format(output_format)
+        
+        if output_format == OutputFormats.DATAFRAME:
+            return pd.DataFrame(data)
+        return data
 
 
     def get_season_id(self, season_label: str = None) -> str:
         """
-        Returns the season id based on the season label.
-        Season label should be something like "2024/25", "2023/24".
+        Get season ID based on season label
+        
+        Args:
+            season_label: Season label (e.g., "2024/25", "2023/24")
+                         If None, returns the latest season ID
+                         
+        Returns:
+            Season ID as string
+            
+        Raises:
+            ValueError: When season is not found or API request fails
         """
-        # Call API to get all season data
-        seasons_data = self.__api_call("competitions/1/compseasons")
-
-        # Make sure the API returns data
-        if "content" not in seasons_data:
-            raise ValueError
-
-        # Find the ID of a given season
-        if season_label:
-            for season in seasons_data["content"]:
-                if season["label"] == season_label:
-                    return str(int(season["id"]))
-            raise ValueError(f"Unable to find the season: {season_label}")
-
-        # Get latest season ID (ID max)
-        latest_season = max(seasons_data["content"], key=lambda x: x["id"])
-        return str(int(latest_season["id"]))
+        try:
+            endpoint = APIEndpoints.SEASONS.format(config.premier_league_id)
+            seasons_data = self._make_request(endpoint)
+            
+            if DataKeys.CONTENT not in seasons_data:
+                raise ValueError("Invalid season data response from API")
+            
+            seasons = seasons_data[DataKeys.CONTENT]
+            
+            if season_label:
+                for season in seasons:
+                    if season.get("label") == season_label:
+                        return str(int(season[DataKeys.ID]))
+                raise ValueError(f"Season '{season_label}' not found. Please check the season format (e.g., '2024/25')")
+            
+            # Return latest season ID
+            if not seasons:
+                raise ValueError("No seasons available from API")
+                
+            latest_season = max(seasons, key=lambda x: x[DataKeys.ID])
+            return str(int(latest_season[DataKeys.ID]))
+            
+        except (KeyError, ValueError, TypeError) as e:
+            if "Season" in str(e) or "not found" in str(e) or "Invalid" in str(e):
+                raise e
+            raise ValueError(f"Error processing season data: {str(e)}")
 
 
 
     """
-    Club Data ⬇️
+    ==================== Club Data ⬇️ ====================
     """
 
+    def _get_clubs_in_season(self, season_id: str) -> List[Dict]:
+        """Get raw club data for a season"""
+        endpoint = APIEndpoints.CLUBS_IN_SEASON.format(season_id)
+        return self._make_request(endpoint)
 
-    def club_id(self, compseason: str, output:str = 'json') -> Union[list, pd.DataFrame]:
+
+    def get_club_ids(self, season_id: str, output: str = None) -> Union[List[Dict], pd.DataFrame]:
         """
         Returns the name and ID of clubs in the specified season's Premier League.
         """
-        raw_data = self.club_incompseason(compseason)
-        team_data = []
-
-        for team in raw_data:
-            if team.get("teamType") == "FIRST":
-                team_data.append({
-                    "Name": team.get("shortName"),
-                    "Team ID": str(int(team.get("id")))
-                })
-        
-        if output == "df":
-            return pd.DataFrame(team_data)
-
-        return team_data
+        if output is None:
+            output = config.default_output_format
+            
+        try:
+            clubs_data = self._get_clubs_in_season(season_id)
+            
+            team_data = []
+            for team in clubs_data:
+                if team.get(DataKeys.TEAM_TYPE) == DataKeys.FIRST_TEAM:
+                    team_data.append({
+                        "Name": team.get(DataKeys.SHORT_NAME),
+                        "Team ID": str(int(team.get(DataKeys.ID)))
+                    })
+            
+            if not team_data:
+                raise ValueError(f"No clubs found for season {season_id}")
+            
+            return self._format_output(team_data, output)
+            
+        except (KeyError, ValueError, TypeError) as e:
+            if "No clubs found" in str(e):
+                raise e
+            raise ValueError(f"Error processing club data: {str(e)}")
     
-
-    def club_incompseason(self, compseason:str) -> list[dict]:
-        """
-        Returns information of clubs in the specified season's Premier League.
-        """
-        res = self.__api_call(f'compseasons/{compseason}/teams')
-
-        return res
-
 
     def club_playedgames(self, compseason:str, teamId:str, altIds:str = 'true') -> dict:
         """
@@ -95,18 +182,26 @@ class EPLAPI:
         return res
     
 
-    def club_info(self, teamId:str ) -> dict:
+    def get_club_info(self, club_id: str) -> dict:
         """
         Returns deatiled information of a specified club.
-        """
-        res = self.__api_call(f'clubs/{teamId}')
 
-        return res
+        Args:
+            club_id: Club ID
+            
+        Returns:
+            Club information dictionary
+        """
+        try:
+            endpoint = APIEndpoints.CLUB_INFO.format(club_id)
+            return self._make_request(endpoint)
+        except Exception as e:
+            raise ValueError(f"Error getting club information for ID '{club_id}': {str(e)}")
 
 
     def club_rankings_list_stat_types(self) -> dict:
         """
-        Returns a list of available stat_type values for use with club_rankings().
+        Returns a list of available stat_type values for use with get_club_rankings().
         These can be passed to .club_rankings(stat_type, compseason).
         """
         return {
@@ -132,49 +227,63 @@ class EPLAPI:
         }
 
 
-    def club_rankings(self, stat_type: str, compseason: str, output: str = "json") -> Union[list, pd.DataFrame]:
+    def get_club_rankings(self, stat_type: str, season_id: str, output: str = None) -> Union[List[Dict], pd.DataFrame]:
         """
-        Returns a ranking of clubs based on the given stat_type (e.g., 'goals', 'total_pass').
+        Get club rankings for a specific statistic
+        
+        Args:
+            stat_type: Type of statistic (e.g., 'goals', 'total_pass')
+            season_id: Season ID
+            output: Output format ('json' or 'df')
+            
+        Returns:
+            Club rankings data
+            
+        Raises:
+            ValueError: When stat_type is invalid
         """
+        if output is None:
+            output = config.default_output_format
+            
+        # Validate stat type
+        if not validate_stat_type(stat_type, "club"):
+            valid_stats = get_all_club_stat_types()[:10]  # Show first 10 examples
+            raise ValueError(f"Invalid statistic type '{stat_type}'. Valid examples include: {', '.join(valid_stats)}")
+        
         try:
             params = {
-                "pageSize": 20,  # 20 clubs in EPL
-                "compSeasons": compseason,
-                "comps": 1,
+                "pageSize": config.club_page_size,
+                "compSeasons": season_id,
+                "comps": config.premier_league_id,
                 "altIds": "true"
             }
-
-            res = self.__api_call(
-                f"stats/ranked/teams/{stat_type}",
-                qparams=params
-            )
-
+            
+            endpoint = APIEndpoints.CLUB_RANKINGS.format(stat_type)
+            response = self._make_request(endpoint, params)
+            
             data = []
-            for item in res.get("stats", {}).get("content", []):
-                team = item.get("owner", {})
+            stats_content = response.get(DataKeys.STATS, {}).get(DataKeys.CONTENT, [])
+            
+            for item in stats_content:
+                team = item.get(DataKeys.OWNER, {})
                 data.append({
-                    "Rank": item.get("rank"),
-                    "Club": team.get("name"),
-                    "Stat": item.get("value")
+                    "Rank": item.get(DataKeys.RANK),
+                    "Club": team.get(DataKeys.NAME),
+                    "Stat": item.get(DataKeys.VALUE)
                 })
-
-            if not res:
-                print(f"No response for stat_type {stat_type} in compseason {compseason}")
-                return []
-
-            if output == "df":
-                return pd.DataFrame(data)
-
-            return data
-
-        except Exception as e:
-            print(f"Failed in getting club ranking for {stat_type}: {str(e)}")
-            return []
-
+            
+            if not data:
+                raise ValueError(f"No ranking data found for statistic '{stat_type}' in season '{season_id}'")
+            
+            return self._format_output(data, output)
+            
+        except (KeyError, TypeError) as e:
+            raise ValueError(f"Error processing club rankings for '{stat_type}': {str(e)}")
+        
 
     def club_stats_list_stat_types(self) -> list:
         """
-        Returns a list of stat_type that can be used in club_stats(club_id, season_id, stat_type=...).
+        Returns a list of stat_type that can be used in get_club_stats(club_id, season_id, stat_type=...).
         """
         return [
             "gameweek", "wins", "losses", "draws", "goals", "goals_conceded", "clean_sheet",
@@ -195,35 +304,54 @@ class EPLAPI:
         ]
 
 
-    def club_stats(self, club_id: str, season_id: str, stat_type: str = None, output: str = "json") -> Union[dict, int, pd.DataFrame]:
+    def get_club_stats(self, club_id: str, season_id: str, stat_type: str = None, output: str = None) -> Union[Dict, int, pd.DataFrame]:
         """
-        Get the statistics for a given club for a given season. 
-        If stat_type is not specified, all available data is returned.
+        Get statistics for a specific club in a season
+        
+        Args:
+            club_id: Club ID
+            season_id: Season ID
+            stat_type: Specific statistic type (optional)
+            output: Output format ('json' or 'df')
+            
+        Returns:
+            Club statistics data
         """
-        endpoint = f"stats/team/{club_id}"
-        params = {
-            "comps": 1,
-            "compSeasons": season_id
-        }
-
-        res = self.__api_call(endpoint, qparams=params)
-        stats_list = res.get("stats", [])
-
-        stats_dict = {item["name"]: item["value"] for item in stats_list}
-
-        if stat_type:
-            return stats_dict.get(stat_type)
-
-        if output == "df":
-            df = pd.DataFrame(list(stats_dict.items()), columns=["Stat", "Value"])
-            return df.sort_values("Stat").reset_index(drop=True)
-
-        return stats_dict
-
+        if output is None:
+            output = config.default_output_format
+            
+        try:
+            params = {
+                "comps": config.premier_league_id,
+                "compSeasons": season_id
+            }
+            
+            endpoint = APIEndpoints.CLUB_STATS.format(club_id)
+            response = self._make_request(endpoint, params)
+            
+            stats_list = response.get(DataKeys.STATS, [])
+            stats_dict = {item[DataKeys.NAME]: item[DataKeys.VALUE] for item in stats_list}
+            
+            if stat_type:
+                if stat_type not in stats_dict:
+                    available_stats = list(stats_dict.keys())[:10]  # Show first 10 examples
+                    raise ValueError(f"Statistic '{stat_type}' not found for this club. Available examples: {', '.join(available_stats)}")
+                return stats_dict.get(stat_type)
+            
+            if output == OutputFormats.DATAFRAME:
+                df = pd.DataFrame(list(stats_dict.items()), columns=["Stat", "Value"])
+                return df.sort_values("Stat").reset_index(drop=True)
+            
+            return stats_dict
+            
+        except (KeyError, TypeError) as e:
+            if "not found" in str(e):
+                raise e
+            raise ValueError(f"Error processing club statistics: {str(e)}")
 
 
     """
-    Player Data ⬇️
+    ==================== Player Data ⬇️ ====================
     """
 
 
