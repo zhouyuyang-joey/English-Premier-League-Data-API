@@ -145,7 +145,7 @@ class Config:
     @property
     def default_output_format(self) -> str:
         """Default output format"""
-        return self.get('data.default_output_format', 'json')
+        return self.get('data.default_output_format', 'df')
     
     @property
     def include_nationality(self) -> bool:

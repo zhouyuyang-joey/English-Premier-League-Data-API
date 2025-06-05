@@ -34,7 +34,7 @@ competition:
 # Data Processing Settings
 data:
   # "json" or "df"
-  default_output_format: "json"
+  default_output_format: "df"
   
   include_nationality: true
   
