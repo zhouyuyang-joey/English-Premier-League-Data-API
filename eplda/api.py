@@ -172,14 +172,57 @@ class EPLAPI:
                 raise e
             raise ValueError(f"Error processing club data: {str(e)}")
     
-
-    def club_playedgames(self, compseason:str, teamId:str, altIds:str = 'true') -> dict:
-        """
-        Returns information of completed matches of a specified club.
-        """
-        res = self.__api_call(f'compseasons/{compseason}/standings/team/{teamId}?altIds={altIds}')
-
-        return res
+    
+    def get_club_tables(self, season_id: str = None, output: str = None) -> Union[List[Dict], pd.DataFrame]:
+        if output is None:
+            output = config.default_output_format
+        
+        # Get current season if not provided
+        if season_id is None:
+            season_id = self.get_season_id()
+            
+        try:
+            endpoint = APIEndpoints.CLUB_SEASON_TABLE.format(season_id)
+            response = self._make_request(endpoint)
+            
+            # Extract table data from response
+            tables = response.get("tables", [])
+            if not tables:
+                raise ValueError(f"No table data found for season {season_id}")
+            
+            # Get the main league table (usually the first one)
+            main_table = tables[0]
+            entries = main_table.get("entries", [])
+            
+            if not entries:
+                raise ValueError(f"No standings entries found for season {season_id}")
+            
+            table_data = []
+            for entry in entries:
+                team = entry.get("team", {})
+                overall = entry.get("overall", {})
+                
+                table_data.append({
+                    "Position": entry.get("position"),
+                    "Club": team.get("name"),
+                    "Club ID": str(team.get("id", "")),
+                    "Played": overall.get("played", 0),
+                    "Won": overall.get("won", 0),
+                    "Drawn": overall.get("drawn", 0),
+                    "Lost": overall.get("lost", 0),
+                    "Goals For": overall.get("goalsFor", 0),
+                    "Goals Against": overall.get("goalsAgainst", 0),
+                    "Goal Difference": overall.get("goalsDifference", 0),
+                    "Points": overall.get("points", 0)
+                })
+            
+            # Sort by position to ensure correct order
+            table_data.sort(key=lambda x: x["Position"])
+            
+            return self._format_output(table_data, output)
+            
+        except (KeyError, TypeError) as e:
+            raise ValueError(f"Error processing club table data: {str(e)}")
     
 
     def get_club_info(self, club_id: str) -> dict:
