@@ -88,10 +88,10 @@ class APIEndpoints:
     
     # Club endpoints
     CLUBS_IN_SEASON = "compseasons/{}/teams"
-    CLUB_STANDINGS = "compseasons/{}/standings/team/{}?altIds={}"
     CLUB_INFO = "clubs/{}"
     CLUB_RANKINGS = "stats/ranked/teams/{}"
     CLUB_STATS = "stats/team/{}"
+    CLUB_SEASON_TABLE = "compseasons/{}/standings"
     
     # Player endpoints
     PLAYERS = "players"
