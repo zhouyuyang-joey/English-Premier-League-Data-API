@@ -61,23 +61,16 @@ class StatTypes:
     }
     
     # Individual club stat types for detailed statistics
-    CLUB_DETAIL_STATS = [
-        "gameweek", "wins", "losses", "draws", "goals", "goals_conceded", "clean_sheet",
-        "total_pass", "accurate_pass", "poss_won_att_3rd", "poss_won_mid_3rd", "poss_won_def_3rd",
-        "total_cross", "accurate_cross", "total_through_ball", "accurate_through_ball",
-        "total_scoring_att", "ontarget_scoring_att", "big_chance_created", "big_chance_missed",
-        "goal_assist", "goal_assist_openplay", "goal_assist_setplay", "goal_assist_deadball",
-        "goals_openplay", "goal_fastbreak", "subs_goals", "hit_woodwork", "saves",
-        "penalty_won", "penalty_conceded", "penalty_save", "penalty_faced",
-        "yellow_card", "total_yel_card", "red_card", "total_red_card",
-        "att_freekick_total", "att_post_left", "att_post_right", "att_miss_high_left", "att_miss_high_right",
-        "total_long_balls", "accurate_long_balls", "interception", "tackles", "blocked_scoring_att",
-        "aerial_won", "aerial_lost", "duel_won", "duel_lost",
-        "total_launches", "accurate_launches", "final_third_entries", "ball_recovery",
-        "total_clearance", "head_clearance", "effective_clearance", "clearance_off_line",
-        "error_lead_to_goal", "error_lead_to_shot",
-        "attendance_average", "attendance_highest", "attendance_lowest"
-    ]
+    CLUB_DETAIL_STATS = {
+        "Basic Stats": ["gameweek", "wins", "losses", "draws", "goals", "goals_conceded", "clean_sheet"],
+        "Passing": ["total_pass", "accurate_pass", "poss_won_att_3rd", "poss_won_mid_3rd", "poss_won_def_3rd"],
+        "Attacking": ["total_scoring_att", "ontarget_scoring_att", "big_chance_created", "big_chance_missed", 
+                     "goal_assist", "goals_openplay", "goal_fastbreak", "hit_woodwork"],
+        "Defending": ["saves", "interception", "tackles", "blocked_scoring_att", "total_clearance", 
+                     "head_clearance", "effective_clearance"],
+        "Discipline": ["yellow_card", "total_yel_card", "red_card", "total_red_card"],
+        "Attendance": ["attendance_average", "attendance_highest", "attendance_lowest"]
+    }
 
 
 class APIEndpoints:
