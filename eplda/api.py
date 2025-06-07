@@ -584,6 +584,182 @@ class EPLAPI:
         except Exception as e:
             raise ValueError(f"Error getting statistics for player ID '{player_id}': {str(e)}")
         
+
+    def get_player_comparison(self, player_names: List[str], season_id: str, stats_to_compare: List[str] = None, output: str = None) -> Union[Dict[str, Any], pd.DataFrame]:
+        """
+        Compare multiple players' statistics
+        
+        Args:
+            player_names: List of player names to compare
+            season_id: Season ID
+            stats_to_compare: List of statistics to compare (optional)
+            output: Output format ('json' or 'df')
+            
+        Returns:
+            Comparison data in specified format
+            
+        Raises:
+            ValueError: When players not found or invalid parameters
+        """
+        if output is None:
+            output = config.default_output_format
+        
+        # Default comparison statistics
+        if stats_to_compare is None:
+            stats_to_compare = ["appearances", "mins_played", "goals", "goal_assist"]
+        
+        # Validate inputs
+        if len(player_names) < 2:
+            raise ValueError("At least 2 players are required for comparison")
+        
+        if len(set(player_names)) != len(player_names):
+            raise ValueError("Duplicate player names found in the list")
+        
+        # Get all players list to extract team and position info
+        try:
+            all_players_list = self.get_player_list(season_id, "json")
+            players_info_map = {}
+            
+            # Create a mapping of player names to their info
+            for player in all_players_list:
+                player_name_variations = [
+                    player["Name"],
+                    player["Name"].lower(),
+                    player["Name"].replace(" ", "").lower()
+                ]
+                for variation in player_name_variations:
+                    players_info_map[variation] = {
+                        "id": player["ID"],
+                        "name": player["Name"],
+                        "position": player.get("Position"),
+                        "team": player.get("Current Team")
+                    }
+            
+        except Exception as e:
+            raise ValueError(f"Failed to get players list: {str(e)}")
+        
+        # Get player data
+        players_data = {}
+        failed_players = []
+        stats_info = {}
+        
+        for player_name in player_names:
+            try:
+                # Try to find player info from the players list
+                player_info = None
+                search_variations = [
+                    player_name,
+                    player_name.lower(),
+                    player_name.replace(" ", "").lower()
+                ]
+                
+                for variation in search_variations:
+                    if variation in players_info_map:
+                        player_info = players_info_map[variation]
+                        break
+                
+                if not player_info:
+                    # Fallback: search by name similarity
+                    for list_player in all_players_list:
+                        if player_name.lower() in list_player["Name"].lower():
+                            player_info = {
+                                "id": list_player["ID"],
+                                "name": list_player["Name"],
+                                "position": list_player.get("Position"),
+                                "team": list_player.get("Current Team")
+                            }
+                            break
+                
+                if not player_info:
+                    raise ValueError(f"Player '{player_name}' not found in season {season_id}")
+                
+                player_id = player_info["id"]
+                
+                # Get player stats
+                player_stats_response = self.get_player_stats(player_id, season_id)
+                
+                # Extract stats
+                stats_list = player_stats_response.get('stats', [])
+                
+                # Convert stats list to dictionary
+                stats_dict = {stat['name']: stat['value'] for stat in stats_list}
+                
+                # Extract requested statistics
+                player_comparison_data = {}
+                for stat in stats_to_compare:
+                    value = stats_dict.get(stat, 0)  # Use 0 for missing stats
+                    player_comparison_data[stat] = value
+                
+                # Use player info from the players list (more reliable)
+                final_player_info = {
+                    "name": player_info["name"],
+                    "position": player_info["position"],
+                    "team": player_info["team"],
+                    "stats": player_comparison_data
+                }
+                
+                players_data[player_name] = final_player_info
+                
+            except Exception as e:
+                failed_players.append({"name": player_name, "error": str(e)})
+        
+        # Check if we have enough successful players
+        if len(players_data) < 2:
+            error_msg = f"Failed to get data for enough players. Successful: {len(players_data)}, Failed: {len(failed_players)}"
+            if failed_players:
+                error_msg += f"\nFailed players: {[fp['name'] + ' (' + fp['error'] + ')' for fp in failed_players]}"
+            raise ValueError(error_msg)
+        
+        # Warn about failed players but continue with successful ones
+        if failed_players:
+            print(f"Warning: Failed to get data for {len(failed_players)} player(s): {[fp['name'] for fp in failed_players]}")
+        
+        # Calculate stats info (min, max, mean for each statistic)
+        all_stats_values = {stat: [] for stat in stats_to_compare}
+        
+        # Collect all values for each statistic
+        for player_data in players_data.values():
+            for stat in stats_to_compare:
+                value = player_data["stats"].get(stat, 0)
+                all_stats_values[stat].append(value)
+        
+        for stat in stats_to_compare:
+            values = all_stats_values[stat]
+            stats_info[stat] = {
+                "min": min(values),
+                "max": max(values),
+                "mean": sum(values) / len(values) if values else 0
+            }
+        
+        # Prepare return data
+        result_data = {
+            "players": players_data,
+            "stats_compared": stats_to_compare,
+            "stats_info": stats_info,
+            "season_id": season_id
+        }
+        
+        # Add failed players info if any
+        if failed_players:
+            result_data["failed_players"] = failed_players
+        
+        # Format output
+        if output == OutputFormats.DATAFRAME:
+            # Create DataFrame with players as rows and stats as columns
+            df_data = []
+            for player_name, player_data in players_data.items():
+                row = {"Player": player_data["name"], "Position": player_data.get("position"), "Team": player_data.get("team")}
+                row.update(player_data["stats"])
+                df_data.append(row)
+            
+            df = pd.DataFrame(df_data)
+            # Set player names as index for easier plotting
+            df.set_index("Player", inplace=True)
+            return df
+        
+        return result_data
+
+        
     
     """
     ==================== Utility ⬇️ ====================
