@@ -33,7 +33,7 @@ class StatTypes:
     # Player ranking stat types
     PLAYER_STATS = {
         "General": [
-            "appearances", "wins", "losses", "draws", "minsPlayed"
+            "appearances", "wins", "losses", "draws", "mins_played"
         ],
         "Attack": [
             "goals", "goal_assist", "total_scoring_att", "ontarget_scoring_att",
@@ -113,6 +113,7 @@ class DataKeys:
     COUNTRY = "country"
     INFO = "info"
     POSITION = "position"
+    POSITION_INFO = "positionInfo"
     SHIRT_NUM = "shirtNum"
     AGE = "age"
     
