@@ -440,24 +440,42 @@ class EPLAPI:
             raise ValueError(f"Error processing player rankings for '{stat_type}': {str(e)}")
     
         
-    def get_player_list(self, season_id: str, output: str = None) -> Union[List[Dict], pd.DataFrame]:
+    def get_player_list(self, season_id: str, output: str = None, club_id: Union[str, int] = None) -> Union[List[Dict], pd.DataFrame]:
         """
-        Get all Premier League first team players for a season
+        Get Premier League players for a season, optionally filtered by club
         
         Args:
             season_id: Season ID
             output: Output format ('json' or 'df')
+            club_id: Club ID to filter players (can be string or int, optional)
             
         Returns:
             List of players with basic information
+            
+        Raises:
+            ValueError: When no players found or invalid club_id
         """
         if output is None:
             output = config.default_output_format
             
         try:
-            # Get valid team IDs for filtering
-            club_ids = self.get_club_ids(season_id, "json")
-            valid_team_ids = set(club["Team ID"] for club in club_ids)
+            # If club_id is provided, validate it first
+            if club_id is not None:
+                # Convert club_id to string for consistent handling
+                club_id = str(club_id)
+                
+                club_ids_data = self.get_club_ids(season_id, "json")
+                valid_club_ids = {club["Team ID"] for club in club_ids_data}
+                
+                if club_id not in valid_club_ids:
+                    raise ValueError(f"Club ID '{club_id}' not found. Use get_club_ids() or get_club_tables() to find valid club IDs.")
+            
+            # Get valid team IDs for filtering (only if not filtering by specific club)
+            if club_id is None:
+                club_ids_data = self.get_club_ids(season_id, "json")
+                valid_team_ids = {club["Team ID"] for club in club_ids_data}
+            else:
+                valid_team_ids = {club_id}
             
             players = []
             page = 0
@@ -479,9 +497,15 @@ class EPLAPI:
                     team = player.get(DataKeys.CURRENT_TEAM, {})
                     team_id = str(int(team.get(DataKeys.ID))) if team and team.get(DataKeys.ID) is not None else None
                     
-                    # Filter only first team players if configured
-                    if config.filter_first_team_only and team_id not in valid_team_ids:
-                        continue
+                    # Apply filtering logic
+                    if club_id is not None:
+                        # Filter by specific club
+                        if team_id != club_id:
+                            continue
+                    else:
+                        # Filter only first team players if configured (original logic)
+                        if config.filter_first_team_only and team_id not in valid_team_ids:
+                            continue
                     
                     player_data = {
                         "ID": str(int(player[DataKeys.ID])),
@@ -499,14 +523,25 @@ class EPLAPI:
                 page += 1
             
             if not players:
-                raise ValueError(f"No players found for season {season_id}")
+                if club_id is not None:
+                    # Get club name for better error message
+                    club_name = "Unknown"
+                    try:
+                        club_info = self.get_club_info(club_id)
+                        club_name = club_info.get("name", club_id)
+                    except:
+                        pass
+                    raise ValueError(f"No players found for club '{club_name}' (ID: {club_id}) in season {season_id}")
+                else:
+                    raise ValueError(f"No players found for season {season_id}")
             
             return self._format_output(players, output)
             
         except (KeyError, ValueError, TypeError) as e:
-            if "No players found" in str(e):
+            if "not found" in str(e) or "No players found" in str(e):
                 raise e
             raise ValueError(f"Error processing player list: {str(e)}")
+
     
 
     def search_player_by_name(self, name: str, season_id: str, output: str = None) -> Union[List[Dict], pd.DataFrame]:
