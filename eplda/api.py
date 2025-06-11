@@ -159,7 +159,7 @@ class EPLAPI:
                 if team.get(DataKeys.TEAM_TYPE) == DataKeys.FIRST_TEAM:
                     team_data.append({
                         "Name": team.get(DataKeys.SHORT_NAME),
-                        "Team ID": str(int(team.get(DataKeys.ID)))
+                        "Club ID": str(int(team.get(DataKeys.ID)))
                     })
             
             if not team_data:
