@@ -843,37 +843,24 @@ class EPLAPI:
         Returns:
             Available statistics for club detailed stats
         """
-        stats = StatTypes.CLUB_DETAIL_STATS
+        stats_dict = StatTypes.CLUB_DETAIL_STATS
         
         if output == "pretty":
             print("Available Statistics for Club Detailed Stats (get_club_stats)")
             print("=" * 65)
             
-            # Use categories from constants
-            categories = StatTypes.CLUB_DETAIL_STATS
-            
-            for category, category_stats in categories.items():
-                available_in_category = [stat for stat in category_stats if stat in stats]
-                if available_in_category:
-                    print(f"\n{category}:")
-                    for i, stat in enumerate(available_in_category, 1):
-                        print(f"   {i:2d}. {stat}")
-            
-            # Show remaining stats not categorized
-            categorized_stats = set()
-            for category_stats in categories.values():
-                categorized_stats.update(category_stats)
-            
-            remaining_stats = [stat for stat in stats if stat not in categorized_stats]
-            if remaining_stats:
-                print(f"\nOther:")
-                for i, stat in enumerate(remaining_stats, 1):
+            for category, category_stats in stats_dict.items():
+                print(f"\n{category}:")
+                for i, stat in enumerate(category_stats, 1):
                     print(f"   {i:2d}. {stat}")
             
             print(f"\nUsage: epl.get_club_stats(club_id, season_id, stat_type='stat_name')")
             return None
         else:  # list format
-            return sorted(stats)
+            all_stats = []
+            for category_stats in stats_dict.values():
+                all_stats.extend(category_stats)
+            return sorted(all_stats)
 
 
     def get_player_ranking_stats(self, output: str = "pretty") -> Union[Dict, List, None]:
