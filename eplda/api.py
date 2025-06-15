@@ -465,15 +465,15 @@ class EPLAPI:
                 club_id = str(club_id)
                 
                 club_ids_data = self.get_club_ids(season_id, "json")
-                valid_club_ids = {club["Team ID"] for club in club_ids_data}
+                valid_club_ids = {club["Club ID"] for club in club_ids_data}
                 
                 if club_id not in valid_club_ids:
                     raise ValueError(f"Club ID '{club_id}' not found. Use get_club_ids() or get_club_tables() to find valid club IDs.")
             
-            # Get valid team IDs for filtering (only if not filtering by specific club)
+            # Get valid club IDs for filtering (only if not filtering by specific club)
             if club_id is None:
                 club_ids_data = self.get_club_ids(season_id, "json")
-                valid_team_ids = {club["Team ID"] for club in club_ids_data}
+                valid_team_ids = {club["Club ID"] for club in club_ids_data}
             else:
                 valid_team_ids = {club_id}
             
