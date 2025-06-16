@@ -319,17 +319,17 @@ class TestPlayerData(TestEPLAPI):
         self.assertEqual(player_id, "65970")
     
     @patch('eplda.api.EPLAPI._make_request')
-    def test_get_player_stats(self, mock_request):
+    def test_get_player_details(self, mock_request):
         """Test getting detailed player statistics"""
         mock_request.return_value = self.mock_player_stats_response
         
-        result = self.api.get_player_stats("100", "719")
+        result = self.api.get_player_details("100", "719")
         
         self.assertIsInstance(result, dict)
         self.assertIn("stats", result)
     
     @patch('eplda.api.EPLAPI.get_player_list')
-    @patch('eplda.api.EPLAPI.get_player_stats')
+    @patch('eplda.api.EPLAPI.get_player_details')
     def test_get_player_comparison(self, mock_stats, mock_players):
         """Test comparing multiple players"""
         # Mock player list
