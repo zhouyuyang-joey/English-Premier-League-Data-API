@@ -1,0 +1,51 @@
+# eplda Configuration File
+# This file allows you to customize API configuration without modifying the code.
+
+# API Configuration
+request:
+  # Request timeout in seconds
+  timeout: 30
+  
+  # Maximum number of retries for failed requests
+  max_retries: 3
+  
+  # Delay between retries in seconds
+  retry_delay: 1
+
+  # Default page size for paginated requests
+  page_size: 100
+
+
+# Competition-specific settings
+competition:
+  # Premier League competition ID
+  premier_league_id: 1
+  
+  # Competition code for active players
+  comp_code: "EN_PR"
+
+  # Default club page size for EPL (20 teams)
+  club_page_size: 20
+
+  # Default player page size for rankings
+  player_page_size: 50
+
+
+# Data Processing Settings
+data:
+  # "json" or "df"
+  default_output_format: "df"
+  
+  include_nationality: true
+  
+  filter_first_team_only: true
+
+
+# Cache Settings (for future implementation)
+cache:
+  enabled: false
+  ttl: 3600
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
