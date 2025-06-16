@@ -17,19 +17,10 @@
 - More robust error handling and clearer API responses
 - Expanded notebook example with step-by-step usage and visualization
 
-## Setup Instructions
-Install the required dependencies:
-```bash
-pip install -r requirements.txt
-```
-Or install manually:
-```bash
-pip install requests pandas
-```
 
 ## Installation
-Install the package directly:
-```bash
+The easiest way to install the latest version is:
+```
 pip install eplda
 ```
 
