@@ -8,7 +8,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="eplda",
-    version="0.2.2",
+    version="0.2.3",
     description="An unofficial lightweight Python client library for Premier League Data API",
     long_description=long_description,
     long_description_content_type="text/markdown",
