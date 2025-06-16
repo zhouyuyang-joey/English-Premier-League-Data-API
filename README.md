@@ -11,7 +11,7 @@
 - ✅ Supports both JSON and pandas DataFrame output formats
 - ✅ Live Data
 
-## What's New with version 0.2.1
+## What's New with version 0.2.2
 - Improved documentation and usage examples
 - Self-explanatory naming
 - More robust error handling and clearer API responses
