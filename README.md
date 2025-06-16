@@ -1,5 +1,12 @@
 # ⚽ English-Premier-League-Data-API
 
+[![PyPI version](https://img.shields.io/pypi/v/eplda.svg?style=flat&logo=pypi)](https://pypi.org/project/eplda/)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1O0QOm326n-zfGW0YbGXiH-2fuE0GZhfP?usp=sharing)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+### Name: Yuyang Zhou
+### Student Number: 24005480
+
 `EPL-Data` is an unofficial lightweight Python API client for [www.premierleague.com](https://www.premierleague.com/), providing quick access to data on Premier League players and clubs. It is ideal for data analysis and visualization.
 
 **Note:** This project is for personal interest and learning only. Commercial use is strictly not permitted.
@@ -16,6 +23,11 @@
 - Self-explanatory naming
 - More robust error handling and clearer API responses
 - Expanded notebook example with step-by-step usage and visualization
+
+## Gradio
+I quickly built a Gradio app for Premier League data visualization with limited functionality with the help of LLM. You can run it in Colab easily!
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1O0QOm326n-zfGW0YbGXiH-2fuE0GZhfP?usp=sharing)
 
 
 ## Installation
