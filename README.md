@@ -54,7 +54,7 @@ A comprehensive demonstration is available in [examples.ipynb](examples.ipynb), 
 ## Known Issues
 - For some reason, some players cannot be found by ``search_player_by_name()`` or ``get_player_list()``.
 (The temporary solution is to read the player's ID in the URL of the official website, e.g. Bukayo Saka's ID is [49481](https://www.premierleague.com/players/49481/Bukayo-Saka/overview))
-- ``interceptions`` is not working for ``get_club_rankings()``
+- ``interceptions`` and ``Headed clearances`` are not working for ``get_club_rankings()`` (Although it seems to be a typo, I still cannot get the stats correctly after trying to correct it)
 
 ## License & Terms of Use
 
