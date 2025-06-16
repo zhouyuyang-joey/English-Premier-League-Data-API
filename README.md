@@ -1,54 +1,80 @@
 # ⚽ English-Premier-League-Data-API
 
+`EPL-Data` is an unofficial lightweight Python API client for [www.premierleague.com](https://www.premierleague.com/), providing quick access to data on Premier League players and clubs. It is ideal for data analysis and visualization.
 
-
-`EPL-Data` is an unofficial lightweight Python client library based on the Premier League Data API, which provides quick access to data on Premier League players and clubs. Great for data analysis and visualisation.
-
-**Please note that this project was made solely for personal interest and learning purposes. Any commercial related use is unacceptable.**
-
-
-> Created by Zhou Yuyang
-
-> Based on Erick Ghuron's [premier-league-data](https://github.com/ghurone/premier-league-data)
+**Note:** This project is for personal interest and learning only. Commercial use is strictly not permitted.
 
 
 ## Features
+- ✅ Super user-friendly (hopefully)
+- ✅ Player and club data access
+- ✅ Supports both JSON and pandas DataFrame output formats
+- ✅ Live Data
 
-- ✅ Player/Club data
-- ✅ Support JSON / pandas DataFrame dual output format
-- ✅ Suitable for the current 2024/25 season
+## What's New with version 0.2.1
+- Improved documentation and usage examples
+- Self-explanatory naming
+- More robust error handling and clearer API responses
+- Expanded notebook example with step-by-step usage and visualization
 
-## Setup Instructions:
+## Setup Instructions
+Install the required dependencies:
+```bash
+pip install -r requirements.txt
 ```
-pip install requests
-pip install pandas
+Or install manually:
+```bash
+pip install requests pandas
 ```
-Alternatively, you can run ``pip install -r requirements.txt`` in the terminal. You can also complete the setup in the [examples.ipynb](examples.ipynb).
+
 ## Installation
-
-```
+Install the package directly:
+```bash
 pip install eplda
 ```
 
-## Brief Guide
-Gets the corresponding ID of the specified season.
+## Quick Start Guide
+Get the season ID for a specific season:
 ```python
-from epldata import EPLAPI
+from eplda import EPLAPI
 
 epl = EPLAPI()
 season_id = epl.get_season_id("2024/25")
 ```
 
-
-Get the top scorer's list and quickly convert it to a pandas DataFrame.
+Get the top scorer's list and convert it to a pandas DataFrame:
 ```python
-df_goals = epl.player_rankings("goals", season_id, output="df")
+df_goals = epl.get_player_rankings("goals", season_id, output="df")
 ```
 
-Search for a player ID by name to get information about the player.
+Search for a player ID by name and get player information:
 ```python
-player_id = epl.player_id("Erling Haaland", season_id)
-player_info = epl.player_info(player_id, season_id)
+player_id = epl.get_player_id("Erling Haaland", season_id)
+player_info = epl.get_player_details(player_id, season_id)
 ```
 
-More specific demonstrations can be found at [examples.ipynb](examples.ipynb)
+## Example Notebook
+A comprehensive demonstration is available in [examples.ipynb](examples.ipynb), including:
+
+- Brief explanation of all methods
+- Club and player data queries
+- Data visualization
+
+## Known Issues
+- For some reason, some players cannot be found by ``search_player_by_name()`` or ``get_player_list()``.
+(The temporary solution is to read the player's ID in the URL of the official website, e.g. Bukayo Saka's ID is [49481](https://www.premierleague.com/players/49481/Bukayo-Saka/overview))
+
+## License & Terms of Use
+
+### API Client
+
+The `eplda` is open source with an [MIT License](LICENSE).
+
+### www.premierleague.com
+
+``www.premierleague.com`` has a [Terms and Conditions](https://www.premierleague.com/terms-and-conditions) regarding the INTELLECTUAL PROPERTY RIGHTS. 
+
+Please note that this project has been created for research purposes only and should not be misused in any way with this project or the data obtained from this it.
+
+## Acknowledgement 
+This project is based on Erick Ghuron's [premier-league-data](https://github.com/ghurone/premier-league-data).
