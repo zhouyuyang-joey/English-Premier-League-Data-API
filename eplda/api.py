@@ -324,22 +324,34 @@ class EPLAPI:
             raise ValueError(f"Error processing club rankings for '{stat_type}': {str(e)}")
 
 
-    def get_club_stats(self, club_id: str, season_id: str, stat_type: str = None, output: str = None) -> Union[Dict, int, pd.DataFrame]:
+    def get_club_details(self, club_id: str, season_id: str, stat_type: Union[str, List[str]] = None, output: str = None) -> Union[Dict, int, List, pd.DataFrame]:
         """
         Get statistics for a specific club in a season
         
         Args:
             club_id: Club ID
             season_id: Season ID
-            stat_type: Specific statistic type (optional)
+            stat_type: Specific statistic type or list of statistic types (List[str]) (optional)
             output: Output format ('json' or 'df')
             
         Returns:
-            Club statistics data
+            Club statistics data - format depends on inputs:
+            - No stat_type: All stats (dict or DataFrame)
+            - Single stat_type: Single value (int/float)
+            - List of stat_types: Dict with requested stats or DataFrame
+        
+        Raises:
+            ValueError: When stat_type not found or invalid parameters
         """
         if output is None:
             output = config.default_output_format
             
+    #     if stat_type and (
+    #     (isinstance(stat_type, str) and stat_type.lower() == "help") or
+    #     (isinstance(stat_type, list) and len(stat_type) == 1 and stat_type[0].lower() == "help")
+    # ):
+    #         return self.get_club_detail_stats("pretty")
+        
         try:
             params = {
                 "comps": config.premier_league_id,
@@ -352,20 +364,51 @@ class EPLAPI:
             stats_list = response.get(DataKeys.STATS, [])
             stats_dict = {item[DataKeys.NAME]: item[DataKeys.VALUE] for item in stats_list}
             
-            if stat_type:
+            if stat_type is None:
+                # Return all stats
+                if output == OutputFormats.DATAFRAME:
+                    df = pd.DataFrame(list(stats_dict.items()), columns=["Stat", "Value"])
+                    return df.sort_values("Stat").reset_index(drop=True)
+                return stats_dict
+                
+            elif isinstance(stat_type, str):
                 if stat_type not in stats_dict:
-                    available_stats = list(stats_dict.keys())[:10]  # Show first 10 examples
+                    available_stats = list(stats_dict.keys())[:10]
                     raise ValueError(f"Statistic '{stat_type}' not found for this club. Available examples: {', '.join(available_stats)}")
                 return stats_dict.get(stat_type)
-            
-            if output == OutputFormats.DATAFRAME:
-                df = pd.DataFrame(list(stats_dict.items()), columns=["Stat", "Value"])
-                return df.sort_values("Stat").reset_index(drop=True)
-            
-            return stats_dict
-            
+                
+            elif isinstance(stat_type, list):
+                if not stat_type:
+                    raise ValueError("stat_type list cannot be empty")
+                    
+                filtered_stats = {}
+                missing_stats = []
+                
+                for stat in stat_type:
+                    if stat in stats_dict:
+                        filtered_stats[stat] = stats_dict[stat]
+                    else:
+                        missing_stats.append(stat)
+
+                if missing_stats:
+                    available_stats = list(stats_dict.keys())[:10]
+                    print(f"Warning: The following statistics were not found: {', '.join(missing_stats)}")
+                    print(f"Available examples: {', '.join(available_stats)}")
+                
+                if not filtered_stats:
+                    raise ValueError(f"None of the requested statistics were found for this club.")
+                
+                if output == OutputFormats.DATAFRAME:
+                    df = pd.DataFrame(list(filtered_stats.items()), columns=["Stat", "Value"])
+                    return df.sort_values("Stat").reset_index(drop=True)
+                
+                return filtered_stats
+                
+            else:
+                raise ValueError(f"stat_type must be string, list, or None, got {type(stat_type)}")
+                
         except (KeyError, TypeError) as e:
-            if "not found" in str(e):
+            if "not found" in str(e) or "not found for this club" in str(e):
                 raise e
             raise ValueError(f"Error processing club statistics: {str(e)}")
 
@@ -596,7 +639,7 @@ class EPLAPI:
         return matches[0]["ID"]
 
 
-    def get_player_stats(self, player_id: str, season_id: str) -> Dict[str, Any]:
+    def get_player_details(self, player_id: str, season_id: str) -> Dict[str, Any]:
         """
         Get detailed statistics for a specific player
         
@@ -711,7 +754,7 @@ class EPLAPI:
                 player_id = player_info["id"]
                 
                 # Get player stats
-                player_stats_response = self.get_player_stats(player_id, season_id)
+                player_stats_response = self.get_player_details(player_id, season_id)
                 
                 # Extract stats
                 stats_list = player_stats_response.get('stats', [])
@@ -835,7 +878,7 @@ class EPLAPI:
 
     def get_club_detail_stats(self, output: str = "pretty") -> Union[List, None]:
         """
-        Get available statistic types for club detailed statistics (used in get_club_stats)
+        Get available statistic types for club detailed statistics (used in get_club_details)
         
         Args:
             output: Output format - "list" or "pretty" (prints to console)
@@ -846,7 +889,7 @@ class EPLAPI:
         stats_dict = StatTypes.CLUB_DETAIL_STATS
         
         if output == "pretty":
-            print("Available Statistics for Club Detailed Stats (get_club_stats)")
+            print("Available Statistics for Club Detailed Stats (get_club_details)")
             print("=" * 65)
             
             for category, category_stats in stats_dict.items():
@@ -854,7 +897,7 @@ class EPLAPI:
                 for i, stat in enumerate(category_stats, 1):
                     print(f"   {i:2d}. {stat}")
             
-            print(f"\nUsage: epl.get_club_stats(club_id, season_id, stat_type='stat_name')")
+            print(f"\nUsage: epl.get_club_details(club_id, season_id, stat_type='stat_name')")
             return None
         else:  # list format
             all_stats = []
