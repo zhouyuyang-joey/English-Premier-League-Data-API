@@ -1,0 +1,6 @@
+include README.md
+include LICENSE
+include requirements.txt
+include eplda/config.yaml
+recursive-include eplda *.py
+recursive-include eplda *.yaml
