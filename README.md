@@ -70,7 +70,7 @@ A comprehensive demonstration is available in [examples.ipynb](examples.ipynb), 
 
 The `eplda` is open source with an [MIT License](LICENSE).
 
-### www.premierleague.com
+### T&C
 
 ``www.premierleague.com`` has a [Terms and Conditions](https://www.premierleague.com/terms-and-conditions) regarding the INTELLECTUAL PROPERTY RIGHTS. 
 
